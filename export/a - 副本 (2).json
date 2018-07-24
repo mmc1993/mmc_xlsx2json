@@ -1,0 +1,5 @@
+{"1": {"f": 1, "b": true, "s": "abc", "bs": [true, true, true], "fs": [1.5, 1.5, 1.5], "ss": ["ab\nc", "abc"], "t": {"i": 1.5, "b": true}, "ts": [{"i": 1.5, "b": true}, {"i": 1.5, "b": true}]},
+"2": {"f": 2, "b": true, "s": "abc", "bs": [true, true, true], "fs": [1.5, 1.5, 1.6], "ss": ["abc", "abc"], "t": {"i": 1.5, "b": true}, "ts": [{"i": 1.5, "b": true}, {"i": 1.5, "b": true}]},
+"3": {"f": 3, "b": true, "s": "abc", "bs": [true, true, true], "fs": [1.5, 1.5, 1.7], "ss": ["abc", "abc"], "t": {"i": 1.5, "b": true}, "ts": [{"i": 1.5, "b": true}, {"i": 1.5, "b": true}]},
+"4": {"f": 4, "b": true, "s": "abc", "bs": [true, true, true], "fs": [1.5, 1.5, 1.8], "ss": ["abc", "abc"], "t": {"i": 1.5, "b": true}, "ts": [{"i": 1.5, "b": true}, {"i": 1.5, "b": true}]},
+"5": {"f": 5, "b": true, "s": "abc", "bs": [true, true, true], "fs": [1.5, 1.5, 1.9], "ss": ["abc", "abc"], "t": {"i": 1.5, "b": true}, "ts": [{"i": 1.5, "b": true}, {"i": 1.5, "b": true}]}}
