@@ -5,8 +5,10 @@
 
 import os
 import sys
+import time
 import codecs
 import openpyxl
+import datetime
 
 class Error(BaseException):
     def __init__(self, what):
@@ -21,6 +23,11 @@ class Parser:
         self.mName = name
         self.mChild = child
         self.mParse = parse
+
+def Skip(buffer, i, l):
+    while i != l and ord(buffer[i]) <= 32:
+        i = i + 1
+    return i
 
 def IsSame(src, dst):
     return src[0: len(dst)] == dst
@@ -88,10 +95,14 @@ def ParseString(buffer, i, l, parser):
 #   解析数组
 def ParseList(buffer, i, l, parser):
     assert(buffer[i] == '[')
-    cparser = parser.mChild[0]
+    if buffer[i + 1] == ']':
+        return (i + 2, RetList(""))
+
     buf = []
+    cparser = parser.mChild[0]
     while i != l:
-        i = i + 1
+        # i = i + 1
+        i = Skip(buffer, i + 1, l)
         i, val = cparser.mParse(buffer, i, l, cparser)
         buf.append(val)
         if buffer[i] == ',':
@@ -118,7 +129,7 @@ def ParseType(buffer, i, l, parser):
 
 ### 从xlsx读取
 def GetVal(xlsx, row, col):
-	return unicode(xlsx.cell(row = row, column = col).value or "")
+    return unicode(xlsx.cell(row = row, column = col).value)
 
 def GetFieldName(buffer, i, l):
     pos = i
@@ -149,7 +160,11 @@ def MakeParser(buffer, i, l):
             i, par = MakeParser(buffer, i, l)
             cparsers.append(par)
             if buffer[i] == ',':
-                i = i + 2
+                # i = i + 2
+                # 支持换行定义
+                # <float a,
+                #  float b>
+                i = Skip(buffer, i + 1, l)
             elif buffer[i] == '>':
                 i = i + 1
                 break
@@ -174,7 +189,7 @@ def MakeParsers(xlsx, row):
             pos, parser = MakeParser(raw, 0, len(raw))
             parsers.append(parser)
         except:
-            raise Error(u"类型定义错误: 行 %s, 列 %s" % (col, raw))
+            raise Error(u"类型定义错误: 行 %s, 列 %s" % (row, col))
     return parsers
 
 def GetRecord(parsers, xlsx, row):
@@ -205,17 +220,23 @@ def ToJson(xlsx):
 
 def Export(fname):
     try:
-        xlsx = openpyxl.load_workbook(fname)
+        xlsx = openpyxl.load_workbook(fname, data_only = True)
         sheet = xlsx[xlsx.sheetnames[0]]
         return ToJson(sheet)
     except Error, error:
         print u"表 %s => %s" % (fname, error.What())
+    except:
+        print u"表 %s => 未知错误" % (fname)
 
-if __name__ == "__main__":
-    OUTPUT_PATH = sys.argv[1]
-    INPUT_PATH = sys.argv[2]
-    INPUT_FULL = os.path.basename(sys.argv[2])
-    INPUT_NAME = os.path.splitext(INPUT_FULL)[0]
+def Write(output, fname):
+    base = os.path.basename(fname)
+    name = os.path.splitext(base)[0]
+    newname = output + "\\" + name + ".json"
+    with codecs.open(newname, 'w', "utf-8") as f:
+        f.write(Export(fname))
 
-    with codecs.open(OUTPUT_PATH + "\\" + INPUT_NAME + ".json", 'w', "utf-8") as f:
-        f.write(Export(INPUT_PATH))
+INPUT_PATH = "C:\\MyWork\\Git\\xlsx2json\\xlsx\\a.xlsx"
+OUTPUT_PATH = "C:\\MyWork\\Git\\xlsx2json\\export\\"
+
+Write(OUTPUT_PATH, INPUT_PATH)
+
