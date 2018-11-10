@@ -69,9 +69,8 @@ def ParseFloat(buffer, i, l, parser):
         or ord(buffer[i]) == ord('.')):
         buf.append(buffer[i])
         i = i + 1
-
     val = "".join(buf)
-    e = float(val)
+    float(val)
     return (i, val)
 
 #   解析字符串
@@ -116,7 +115,7 @@ def ParseType(buffer, i, l, parser):
     assert(buffer[i] == '<')
     buf = []
     while i != l:
-        for k, v in enumerate(parser.mChild):
+        for _, v in enumerate(parser.mChild):
             i, val = v.mParse(buffer, i + 1, l, v)
             buf.append("%s: %s" % (RetKey(v.mName), val))
             if buffer[i] == ',':
@@ -125,6 +124,24 @@ def ParseType(buffer, i, l, parser):
                 break
         if buffer[i] == '>':
             break
+    return (i + 1, RetDict(", ".join(buf)))
+
+def ParseDict(buffer, i, l, parser):
+    assert(buffer[i] == '{')
+    if (buffer[i + 1] == '}'):
+        return (i + 2, RetDict(""))
+    i = i + 1
+    buf = []
+    keyParse = parser.mChild[0]
+    valParse = parser.mChild[1]
+    while i != l:
+        i, key = keyParse.mParse(buffer, i + 0, l, keyParse)
+        i, val = valParse.mParse(buffer, i + 2, l, valParse)
+        buf.append("%s: %s" % (RetKey(key), val))
+        if buffer[i] == '}':
+            break
+        elif buffer[i] == ',':
+            i = Skip(buffer, i + 1, l)
     return (i + 1, RetDict(", ".join(buf)))
 
 ### 从xlsx读取
@@ -153,6 +170,12 @@ def MakeParser(buffer, i, l):
     elif IsSame(stype, "string"):
         i = i + 6
         parser.mParse = ParseString
+    elif IsSame(stype, '{'):
+        i, keyParser = MakeParser(buffer, i + 1, l)
+        i, valParser = MakeParser(buffer, i + 2, l)
+        parser.mChild = (keyParser, valParser)
+        parser.mParse = ParseDict
+        i = i + 1
     elif IsSame(stype, '<'):
         i = i + 1
         cparsers = []
@@ -186,7 +209,7 @@ def MakeParsers(xlsx, row):
     for col in xrange(1, xlsx.max_column + 1):
         try:
             raw = GetVal(xlsx, row, col)
-            pos, parser = MakeParser(raw, 0, len(raw))
+            _, parser = MakeParser(raw, 0, len(raw))
             parsers.append(parser)
         except:
             raise Error(u"类型定义错误: 行 %s, 列 %s" % (row, col))
