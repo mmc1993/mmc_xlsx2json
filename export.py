@@ -10,9 +10,13 @@ import tojson
 import gen_struct_cpp
 import gen_struct_cshap
 
+#   Json输入目录
 JSON_I = os.getcwd() + "/in/"
+#   Json输出目录
 JSON_O = os.getcwd() + "/out/"
-STRUCT_O = os.getcwd() + "/out/config.cpp"
+#   结构化输出目录
+STRUCT_O = os.getcwd() + "/out/config.cs"
+#   命名空间
 NAMESPACE = "config"
 
 def Write(url, data):
@@ -38,8 +42,8 @@ def Export():
         Write(JSON_O + info[0] + ".json", info[1])
 
     #   写入C#
-    # out_struct = gen_struct_cshap.Gen(NAMESPACE, unit_collect)
-    out_struct = gen_struct_cpp.Gen(NAMESPACE, unit_collect)
+    out_struct = gen_struct_cshap.Gen(NAMESPACE, unit_collect)
+    # out_struct = gen_struct_cpp.Gen(NAMESPACE, unit_collect)
     Write(STRUCT_O, out_struct)
 
 if __name__ == "__main__":
