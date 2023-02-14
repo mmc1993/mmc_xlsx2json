@@ -3,40 +3,12 @@
 #   作者: mmc
 #   日期: 2020/3/19
 
-#   说明:
-#       这个py的目的是实现一个在手游开发行业相对通用的Excel=>Json转换工具.
-#       支持以下类型:
-#           list  []
-#           dict  {}
-#           type  <>
-#           bool
-#           number
-#           string
-#       所有类型都可嵌套组合新的数据类型
-#
-#   用例:
-#   基本类型
-# bool b      number n        string s
-# 1           1               "a"
-
-#   数组类型
-# [bool] b_list   [number] n_list     [string] s_list
-# [1, 1, 0]       [1, 2, 3]           ["1", "2", "3"]
-
-#   字典类型
-# {bool} b_dict               {number} n_dict             {string} s_dict
-# {"1": 1, "2": 0, "3": 1}    {"1": 1, "2": 2, "3": 3}    {"1": "1", "2": "2", "3": "3"}
-
-#   自定义类型
-# <bool b, number n, string s> t
-# <1, 1, "a">
-
+from signal import valid_signals
 import sys
-import math
 import time
 import openpyxl
 
-def is_number(str):
+def is_float(str):
     try:
         float(str)
     except ValueError:
@@ -47,38 +19,39 @@ def is_number(str):
 def XLGetValue(xlsx, cur_row, cur_col):
     return str(xlsx.cell(cur_row, cur_col).value)
 
+def ValToKey(value):
+    return value[0] != "\"" and "\"" + value + "\"" or value
+
 #   跳过空字符
-def Skip(buffer, i, l):
-    while i != l:
-        if ord(buffer[i]) > 32:
-            break
+def SkipSpaceChar(buffer, i, l):
+    while i != l and ord(buffer[i]) <= 32:
         i = i + 1
     return i
 
 #   跳过注释行
-def SkipLine(xlsx, cur_row):
-    while cur_row != xlsx.max_row:
-        if XLGetValue(xlsx, cur_row, 1) != "//":
-            break
+def SkipCommentLine(xlsx, cur_row):
+    while cur_row != xlsx.max_row and XLGetValue(xlsx, cur_row, 1) == "//":
         cur_row = cur_row + 1
     return cur_row
 
+#   type name => (type, name)
 def SplitTypeName(value):
     split = value.split()
-    return len(split) == 1 \
-        and (split[0], None) \
-        or (split[0], split[1])
+    return len(split) == 1      \
+        and (split[0], None)    \
+        or  (split[0], split[1])
 
 #   字符串比较
-def EqualString(str0, str1, i):
+def MatchSubString(str0, str1, i):
     l0 = len(str0)
     l1 = len(str1)
     if l0 >= l1:
-        return str0[i:i+l1] == str1
+        sub = str0[i:i+l1]
+        return sub == str1
     return False
 
 #   解析器
-class ParseUnit:
+class Parser:
     def __init__(self, func = None, name = None):
         self.mFunc = func
         self.mName = name
@@ -94,48 +67,46 @@ class ParseUnit:
         return self.mName
     
     def GetType(self):
-        if self.mFunc == OnParserList:
+        if   self.mFunc == OnParseList:
             return "list"
-        elif self.mFunc == OnParserDict:
+        elif self.mFunc == OnParseDict:
             return "dict"
-        elif self.mFunc == OnParserType:
-            return "type"
-        elif self.mFunc == OnParserBool:
+        elif self.mFunc == OnParseBool:
             return "bool"
-        elif self.mFunc == OnParserNumber:
-            return "number"
-        elif self.mFunc == OnParserString:
-            return "string"
+        elif self.mFunc == OnParseInt:
+            return "int"
+        elif self.mFunc == OnParseStr:
+            return "str"
+        elif self.mFunc == OnParseFloat:
+            return "float"
+        elif self.mFunc == OnParseStruct:
+            return "struct"
 
     def GetChildren(self):
         return self.mChildren
 
-    def Exec(self, value, i, l):
+    def Run(self, value, i, l):
         return self.mFunc(value, i, l, self.mChildren)
 
-def ValToKey(value):
-    return value[0] != "\"" and "\"" + value + "\"" or value
+def OnParseBool(value, i, l, unit_child):
+    assert is_float(value[i]), value
+    return i + 1, value[i] == "0"       \
+                          and "false"   \
+                          or  "true"
 
-def OnParserBool(value, i, l, unit_child):
-    assert is_number(value[i]),"[bool]值错误 %s" % value[i]
-    return i + 1, value[i] == "0" and "false" or "true"
-
-def OnParserNumber(value, i, l, unit_child):
+def OnParseInt(value, i, l, unit_child):
     num = []
-    dot = False
     while i != l:
         if "0" <= value[i] and "9" >= value[i]:
             num.append(value[i]); i = i + 1
         elif len(num) == 0 and "-" == value[i]:
             num.append(value[i]); i = i + 1
-        elif not dot and "." == value[i]:
-            num.append(value[i]); i = i + 1
         else:
             break
     return i, "".join(num)
 
-def OnParserString(value, i, l, unit_child):
-    assert value[i] == "\"", "[string]值错误: 开头缺少\""
+def OnParseStr(value, i, l, unit_child):
+    assert value[i] == "\"", value
     i = i + 1
     str = [ ]
     mis = False
@@ -146,56 +117,76 @@ def OnParserString(value, i, l, unit_child):
         str.append(value[i])
         i   = i + 1
         mis = False
-    assert value[i] == "\"", "[string]值错误: 结尾缺少\""
+    assert value[i] == "\"", value
     return i + 1, "\"" + "".join(str) + "\""
 
-def OnParserList(value, i, l, unit_child):
-    assert value[i] == "[", "[list]值错误: 开头缺少["
-    ele = [ ]
+def OnParseFloat(value, i, l, unit_child):
+    ret = []
+    dot = False
+    while i != l:
+        if "0" <= value[i] and "9" >= value[i]:
+            ret.append(value[i]); i = i + 1
+        elif len(ret) == 0 and "-" == value[i]:
+            ret.append(value[i]); i = i + 1
+        elif not dot and "." == value[i]:
+            ret.append(value[i]); i = i + 1
+        else:
+            break
+    return i, "".join(ret)
+
+def OnParseList(value, i, l, unit_child):
+    assert value[i] == "[", value
+    ret = []
     while i != l:
         if value[i] == "]": break
-        i       = Skip(value, i + 1, l)
-        i, data = unit_child[0].Exec(value, i, l)
-        i       = Skip(value, i, l)
-        ele.append(data)
-        assert value[i] == "," or value[i] == "]", "[list]值错误: 缺少,"
-    assert value[i] == "]", "[list]值错误: 结尾缺少]"
-    return i + 1, "[" + ", ".join(ele) + "]"
+        i       = SkipSpaceChar(value, i + 1, l)
+        if value[i] == "]": break
 
-def OnParserDict(value, i, l, unit_child):
-    assert value[i] == "{", "[dict]值错误: 开头缺少{"
-    ele = [ ]
+        i, data = unit_child[0].Run(value, i, l)
+        i       = SkipSpaceChar(value, i, l)
+        ret.append(data)
+        assert value[i] == "," \
+            or value[i] == "]", value
+    assert value[i] == "]", value
+    return i + 1, "[" + ", ".join(ret) + "]"
+
+def OnParseDict(value, i, l, unit_child):
+    assert value[i] == "{", value
+    ret = []
     while i != l:
         if value[i] == "}": break
-        i = Skip(value, i + 1, l)
-        #   解析Key
-        i, key = unit_child[0].Exec(value, i, l)
-        i      = Skip(value, i, l)
-        assert value[i] == ":", "[dict]值错误: 缺少:"
-        i      = Skip(value, i + 1, l)
-        i, val = unit_child[1].Exec(value, i, l)
-        ele.append("%s: %s" %(key, val))
-        assert value[i] == "," or value[i] == "}", "[dict]值错误: 缺少,"
-    assert value[i] == "}", "[dict]值错误: 结尾缺少}"
-    return i + 1, "{" + ", ".join(ele) + "}"
+        i = SkipSpaceChar(value, i + 1, l)
+        if value[i] == "}": break
 
-def OnParserType(value, i, l, unit_child):
-    assert value[i] == "<", "[type]值错误: 开头缺少<"
-    ele = [ ]
+        i, key = unit_child[0].Run(value, i, l)
+        i      = SkipSpaceChar(value, i, l)
+        assert value[i] == ":", value
+        i      = SkipSpaceChar(value, i + 1, l)
+        i, val = unit_child[1].Run(value, i, l)
+        ret.append("%s: %s" %(key, val))
+        assert value[i] == "," \
+            or value[i] == "}", value
+    assert value[i] == "}", value
+    return i + 1, "{" + ", ".join(ret) + "}"
+
+def OnParseStruct(value, i, l, unit_child):
+    assert value[i] == "<", value
+    ret = []
     idx = 0
     while i != l:
         if value[i] == ">": break
-        i = Skip(value, i + 1, l)
-        #   解析Key
+        i = SkipSpaceChar(value, i + 1, l)
         key     = unit_child[idx].GetName()
-        i, val  = unit_child[idx].Exec(value, i, l)
-        i       = Skip(value, i, l) ; idx = idx + 1
-        ele.append("\"%s\": %s" % (key, val))
-        assert value[i] == "," or value[i] == ">", "[type]值错误: 缺少,"
-    assert value[i] == ">", "[type]值错误: 结尾缺少>"
-    return i + 1, "{" + ", ".join(ele) + "}"
+        i, val  = unit_child[idx].Run(value, i, l)
+        i       = SkipSpaceChar(value, i, l)
+        ret.append("\"%s\": %s" % (key, val))
+        idx = idx + 1
+        assert value[i] == "," \
+            or value[i] == ">", value
+    assert value[i] == ">", value
+    return i + 1, "{" + ", ".join(ret) + "}"
 
-def ParseTypeName(value, i, l):
+def GetTypeName(value, i, l):
     b = i
     while i != l and (\
         ("a" <= value[i] and "z" >= value[i]) or \
@@ -205,70 +196,90 @@ def ParseTypeName(value, i, l):
         i = i + 1
     return i, value[b: i]
 
-def BuildFromValue(value, i, l):
-    unit = None
-    if EqualString(value, "bool", i):
+def CreateParser(value, i, l):
+    parser = None
+    if   MatchSubString(value, "bool", i):
         i = i + len("bool")
-        unit = ParseUnit(OnParserBool)
-    elif EqualString(value, "number", i):
-        i = i + len("number")
-        unit = ParseUnit(OnParserNumber)
-    elif EqualString(value, "string", i):
-        i = i + len("string")
-        unit = ParseUnit(OnParserString)
+        parser = Parser(OnParseBool)
+
+    elif MatchSubString(value, "int", i):
+        i = i + len("int")
+        parser = Parser(OnParseInt)
+
+    elif MatchSubString(value, "str", i):
+        i = i + len("str")
+        parser = Parser(OnParseStr)
+
+    elif MatchSubString(value, "float", i):
+        i = i + len("float")
+        parser = Parser(OnParseFloat)
+
     elif value[i] == "[":
-        i, child = BuildFromValue(value, Skip(value, i + 1, l), l)
-        i        = Skip(value, i, l)
-        unit = ParseUnit(OnParserList)
-        unit.Append(child)
-        assert value[i] == "]", "类型解析错误: 数组缺少]"
         i = i + 1
+        i = SkipSpaceChar(value, i, l)
+        i, valParser = CreateParser(value, i, l)
+        i = SkipSpaceChar(value, i, l)
+        parser = Parser(OnParseList)
+        parser.Append(valParser)
+        assert value[i] == "]", value
+        i = i + 1
+
     elif value[i] == "{":
-        unit_key = ParseUnit(OnParserString)
-        i, child = BuildFromValue(value, Skip(value, i + 1, l), l)
-        i        = Skip(value, i, l)
-        unit = ParseUnit(OnParserDict)
-        unit.Append(unit_key)
-        unit.Append(child)
-        assert value[i] == "}", "类型解析错误: 字典缺少}"
         i = i + 1
+        keyParser = Parser(OnParseStr)
+        i = SkipSpaceChar(value, i, l)
+        i, valParser = CreateParser(value, i, l)
+        i = SkipSpaceChar(value, i, l)
+        parser = Parser(OnParseDict)
+        parser.Append(keyParser)
+        parser.Append(valParser)
+        assert value[i] == "}", value
+        i = i + 1
+
     elif value[i] == "<":
-        unit = ParseUnit(OnParserType)
+        parser = Parser(OnParseStruct)
         while i != l:
             if value[i] == ">": break
-            i = Skip(value, i + 1, l)
-            i, child = BuildFromValue(value, i, l)
-            i = Skip(value,i,l);unit.Append(child)
-            assert value[i] == "," or value[i] == ">", "类型解析错误: 类型缺少,"
-        assert value[i] == ">", "类型解析错误: 类型缺少>"
+            i = i + 1
+            i = SkipSpaceChar(value, i, l)
+            i, valParser = CreateParser(value, i, l)
+            i = SkipSpaceChar(value, i, l)
+            parser.Append(valParser)
+
+            assert value[i] == "," \
+                or value[i] == ">", value
+        assert value[i] == ">", value
         i = i + 1
 
-    i       = Skip(value, i, l)
-    i, name = ParseTypeName(value, i, l)
-    unit.SetName(name)
-    return i, unit
+    i = SkipSpaceChar(value, i, l)
+    i,k = GetTypeName(value, i, l)
+    parser.SetName(k)
+    return i, parser
 
-#   编译解析器
-def Build(xlsx, max_col, cur_row, parse_funcs):
-    for cur_col in range(1, max_col + 1):
+#   初始化解析器
+def CreateParserList(xlsx, cur_row, parser_list):
+    for cur_col in range(1, xlsx.max_column + 1):
         try:
             cur_val = XLGetValue(xlsx, cur_row, cur_col)
-            x,y = BuildFromValue(cur_val,0,len(cur_val))
-            parse_funcs.append(y)
+            _,v = CreateParser(cur_val, 0, len(cur_val))
+            parser_list.append(v)
         except AssertionError as e:
             assert False, "%d:%d | %s" % (cur_row, cur_col, e)
     return cur_row + 1
 
 #   解析单元格
-def Parse(xlsx, max_col, cur_row, parse_funcs, out):
+def CreateOutputList(xlsx, cur_row, parser_list, out):
     for cur_row in range(cur_row, xlsx.max_row + 1):
+        if XLGetValue(xlsx, cur_row, 1) == "//": continue
+
         lines = []
-        for cur_col in range(1, max_col + 1):
+        for cur_col in range(1, xlsx.max_column + 1):
             try:
                 value = XLGetValue(xlsx, cur_row, cur_col)
-                l = len(value)
-                k = parse_funcs[cur_col - 1].GetName()
-                _,v=parse_funcs[cur_col - 1].Exec(value, 0, l)
+                vlen = len(value)
+                parser = parser_list[cur_col - 1]
+                k    = parser.GetName()
+                _, v = parser.Run(value, 0, vlen)
                 lines.append("\"%s\": %s" % (k, v))
             except AssertionError as e:
                 assert False, "%d:%d | %s" % (cur_row, cur_col, e)
@@ -279,22 +290,22 @@ def Parse(xlsx, max_col, cur_row, parse_funcs, out):
 
 #   导出Json
 def ToJson(ifile):
-    clock = time.time()
+    # clock = time.time()
     #   读第一张表
-    xlsx = openpyxl.load_workbook(
-            ifile,data_only = True)
+    xlsx = openpyxl.load_workbook(ifile, data_only = True)
     xlsx = xlsx[xlsx.sheetnames[0]]
+
     #   跳过注释行
-    parse_funcs = []
-    json_output = []
-    max_col = xlsx.max_column
-    cur_row = SkipLine(xlsx, 1)
+    parser_list = []
+    output_list = []
+    cur_row = SkipCommentLine(xlsx, 1)
 
     try:
-        cur_row = Build(xlsx, max_col, cur_row, parse_funcs)
-        cur_row = Parse(xlsx, max_col, cur_row, parse_funcs, json_output)
-        print("> %.3fs From %s" % (time.time() - clock, ifile))
-        return "{" + ",\n".join(json_output) + "}", parse_funcs
+        print("> Export %s" % ifile)
+        cur_row = CreateParserList(xlsx, cur_row, parser_list)
+        cur_row = CreateOutputList(xlsx, cur_row, parser_list, output_list)
+        # print("> %.3fs From %s" % (time.time() - clock, ifile))
+        return "{\n" + ",\n".join(output_list) + "\n}", parser_list
     except AssertionError as e:
         assert False, "%s | %s" % (ifile, e)
 
