@@ -7,57 +7,57 @@
 TYPE_LIST = "System.Collections.Generic.List"
 TYPE_DICT = "System.Collections.Generic.Dictionary"
 
-def ID(unit):
-    return "__%d__" % id(unit)
+def ID(parser):
+    return "__%d__" % id(parser)
 
 #   生成字符串
 def GenTable(count):
     return "".join(" " for i in range(count * 4))
 
 #   收集结构体类型
-def CollectStruct(unit, out):
-    for child in unit.GetChildren():
-        CollectStruct(child, out)
-    if unit.GetType() == "type":
-        out.append(unit)
+def CollectStruct(parser, output):
+    for child in parser.GetChildren():
+        CollectStruct(child, output)
+    if parser.GetType() == "struct":
+        output.append(parser)
 
 #   生成成员
-def GenMember(unit, depth):
+def GenMember(parser, depth):
     table = GenTable(depth)
-    name = unit.GetName()
-    type = unit.GetType()
+    name = parser.GetName()
+    type = parser.GetType()
     if type == "bool":
         if len(name) != 0:
             return "%spublic bool %s" % (table, name)
         else:
             return "bool"
-    elif type == "number":
+    elif type == "float":
         if len(name) != 0:
             return "%spublic float %s" % (table, name)
         else:
             return "float"
-    elif type == "string":
+    elif type == "str":
         if len(name) != 0:
             return "%spublic string %s" % (table, name)
         else:
             return "string"
     elif type == "list":
-        ele = GenMember(unit.GetChildren()[0], depth)
+        ele = GenMember(parser.GetChildren()[0], depth)
         if len(name) != 0:
             return "%spublic %s<%s> %s" % (table, TYPE_LIST, ele, name)
         else:
             return "%s<%s>" % (TYPE_LIST, ele)
     elif type == "dict":
-        ele = GenMember(unit.GetChildren()[1], depth)
+        ele = GenMember(parser.GetChildren()[1], depth)
         if len(name) != 0:
             return "%spublic %s<string, %s> %s" % (table, TYPE_DICT, ele, name)
         else:
             return "%s<string, %s>" % (TYPE_DICT, ele)
-    elif type == "type":
+    elif type == "struct":
         if len(name) != 0:
-            return "%spublic %s %s" % (table, ID(unit), name)
+            return "%spublic %s %s" % (table, ID(parser), name)
         else:
-            return "%s" % (ID(unit))
+            return "%s" % (ID(parser))
     assert False, "类型解析错误: 未知类型[%s]" % type
 
 def GenMembers(units, depth):

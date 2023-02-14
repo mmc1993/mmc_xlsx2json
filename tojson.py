@@ -88,13 +88,13 @@ class Parser:
     def Run(self, value, i, l):
         return self.mFunc(value, i, l, self.mChildren)
 
-def OnParseBool(value, i, l, unit_child):
+def OnParseBool(value, i, l, parser):
     assert is_float(value[i]), value
     return i + 1, value[i] == "0"       \
                           and "false"   \
                           or  "true"
 
-def OnParseInt(value, i, l, unit_child):
+def OnParseInt(value, i, l, parser):
     num = []
     while i != l:
         if "0" <= value[i] and "9" >= value[i]:
@@ -105,7 +105,7 @@ def OnParseInt(value, i, l, unit_child):
             break
     return i, "".join(num)
 
-def OnParseStr(value, i, l, unit_child):
+def OnParseStr(value, i, l, parser):
     assert value[i] == "\"", value
     i = i + 1
     str = [ ]
@@ -120,7 +120,7 @@ def OnParseStr(value, i, l, unit_child):
     assert value[i] == "\"", value
     return i + 1, "\"" + "".join(str) + "\""
 
-def OnParseFloat(value, i, l, unit_child):
+def OnParseFloat(value, i, l, parser):
     ret = []
     dot = False
     while i != l:
@@ -134,7 +134,7 @@ def OnParseFloat(value, i, l, unit_child):
             break
     return i, "".join(ret)
 
-def OnParseList(value, i, l, unit_child):
+def OnParseList(value, i, l, parser):
     assert value[i] == "[", value
     ret = []
     while i != l:
@@ -142,7 +142,7 @@ def OnParseList(value, i, l, unit_child):
         i       = SkipSpaceChar(value, i + 1, l)
         if value[i] == "]": break
 
-        i, data = unit_child[0].Run(value, i, l)
+        i, data = parser[0].Run(value, i, l)
         i       = SkipSpaceChar(value, i, l)
         ret.append(data)
         assert value[i] == "," \
@@ -150,7 +150,7 @@ def OnParseList(value, i, l, unit_child):
     assert value[i] == "]", value
     return i + 1, "[" + ", ".join(ret) + "]"
 
-def OnParseDict(value, i, l, unit_child):
+def OnParseDict(value, i, l, parser):
     assert value[i] == "{", value
     ret = []
     while i != l:
@@ -158,27 +158,27 @@ def OnParseDict(value, i, l, unit_child):
         i = SkipSpaceChar(value, i + 1, l)
         if value[i] == "}": break
 
-        i, key = unit_child[0].Run(value, i, l)
+        i, key = parser[0].Run(value, i, l)
         i      = SkipSpaceChar(value, i, l)
         assert value[i] == ":", value
         i      = SkipSpaceChar(value, i + 1, l)
-        i, val = unit_child[1].Run(value, i, l)
+        i, val = parser[1].Run(value, i, l)
         ret.append("%s: %s" %(key, val))
         assert value[i] == "," \
             or value[i] == "}", value
     assert value[i] == "}", value
     return i + 1, "{" + ", ".join(ret) + "}"
 
-def OnParseStruct(value, i, l, unit_child):
+def OnParseStruct(value, i, l, parser):
     assert value[i] == "<", value
     ret = []
     idx = 0
     while i != l:
         if value[i] == ">": break
         i = SkipSpaceChar(value, i + 1, l)
-        key     = unit_child[idx].GetName()
-        i, val  = unit_child[idx].Run(value, i, l)
-        i       = SkipSpaceChar(value, i, l)
+        key    = parser[idx].GetName()
+        i, val = parser[idx].Run(value, i, l)
+        i = SkipSpaceChar(value, i, l)
         ret.append("\"%s\": %s" % (key, val))
         idx = idx + 1
         assert value[i] == "," \
