@@ -6,6 +6,8 @@
 
 import os
 import sys
+sys.path.append("..")
+
 import tojson
 import gen_struct_cpp
 import gen_struct_cshap
