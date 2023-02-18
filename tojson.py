@@ -296,12 +296,12 @@ def ToJson(ifile):
     xlsx = xlsx[xlsx.sheetnames[0]]
 
     #   跳过注释行
-    parser_list = []
-    output_list = []
     cur_row = SkipCommentLine(xlsx, 1)
 
     try:
         print("> Export %s" % ifile)
+        parser_list = []
+        output_list = []
         cur_row = CreateParserList(xlsx, cur_row, parser_list)
         cur_row = CreateOutputList(xlsx, cur_row, parser_list, output_list)
         # print("> %.3fs From %s" % (time.time() - clock, ifile))
