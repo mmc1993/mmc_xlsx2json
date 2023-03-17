@@ -263,8 +263,8 @@ def CreateParserList(xlsx, cur_row, parser_list):
             cur_val = XLGetValue(xlsx, cur_row, cur_col)
             _,v = CreateParser(cur_val, 0, len(cur_val))
             parser_list.append(v)
-        except AssertionError as e:
-            assert False, "%d:%d | %s" % (cur_row, cur_col, e)
+        except:
+            assert False, "%d:%d:%s" % (cur_row, cur_col, cur_val)
     return cur_row + 1
 
 #   解析单元格
