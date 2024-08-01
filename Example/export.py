@@ -17,7 +17,7 @@ JSON_I = os.getcwd() + "/in/"
 #   Json输出目录
 JSON_O = os.getcwd() + "/out/"
 #   结构化输出目录
-STRUCT_O = os.getcwd() + "/out/config.cpp"
+STRUCT_O = os.getcwd() + "/out/config.cs"
 #   命名空间
 NAMESPACE = "config"
 
@@ -46,8 +46,8 @@ def Export():
         Write(JSON_O + info[0] + ".json", info[1])
 
     #   写入C#
-    # Write(STRUCT_O, gen_struct_define_cs.gen(NAMESPACE, parser_wrap_list))
-    Write(STRUCT_O, gen_struct_define_cpp.gen(NAMESPACE, parser_wrap_list))
+    Write(STRUCT_O, gen_struct_define_cs.gen(NAMESPACE, parser_wrap_list))
+    # Write(STRUCT_O, gen_struct_define_cpp.gen(NAMESPACE, parser_wrap_list))
 
 if __name__ == "__main__":
     try:
