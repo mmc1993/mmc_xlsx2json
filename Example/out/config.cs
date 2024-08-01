@@ -1,42 +1,45 @@
+#include <vector>
+#include <map>
+
 namespace config {
-    public struct test {
-        public struct __1396588241344__ {
-            public bool b;
-            public float n;
-            public string s;
+    struct Sheet1 {
+        struct __2189022310416__ {
+            bool b;
+            float n;
+            string s;
         };
-        public struct __1396588322000__ {
-            public bool b;
-            public float n;
-            public string s;
+        struct __2189021229200__ {
+            bool b;
+            float n;
+            string s;
         };
-        public struct __1396588405664__ {
-            public bool b;
-            public float n;
-            public string s;
+        struct __2189029249680__ {
+            bool b;
+            float n;
+            string s;
         };
-        public struct __1396588438240__ {
-            public bool b;
-            public float n;
-            public string s;
+        struct __2189029260624__ {
+            bool b;
+            float n;
+            string s;
         };
-        public struct __1396588438432__ {
-            public __1396588438240__ t;
+        struct __2189029245520__ {
+            __2189029260624__ t;
         };
-        public float id;
-        public bool b;
-        public float n;
-        public string s;
-        public System.Collections.Generic.List<bool> b_list;
-        public System.Collections.Generic.List<float> n_list;
-        public System.Collections.Generic.List<string> s_list;
-        public System.Collections.Generic.Dictionary<string, bool> b_dict;
-        public System.Collections.Generic.Dictionary<string, float> n_dict;
-        public System.Collections.Generic.Dictionary<string, string> s_dict;
-        public __1396588241344__ t;
-        public System.Collections.Generic.List<__1396588322000__> t_list;
-        public System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, float>> d_list;
-        public System.Collections.Generic.Dictionary<string, __1396588405664__> t_dict;
-        public __1396588438432__ t_type;
+        float id;
+        bool b;
+        float n;
+        string s;
+        std::vector<bool> b_list;
+        std::vector<float> n_list;
+        std::vector<string> s_list;
+        std::map<string, bool> b_dict;
+        std::map<string, float> n_dict;
+        std::map<string, string> s_dict;
+        __2189022310416__ t;
+        std::vector<__2189021229200__> t_list;
+        std::vector<std::map<string, float>> d_list;
+        std::map<string, __2189029249680__> t_dict;
+        __2189029245520__ t_type;
     };
 }

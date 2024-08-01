@@ -3,315 +3,260 @@
 #   作者: mmc
 #   日期: 2020/3/19
 
-from signal import valid_signals
-import sys
-import time
 import openpyxl
 
-def is_float(str):
-    try:
-        float(str)
-    except ValueError:
-        return False
-    return True
-
 #   读取单元格文本
-def XLGetValue(xlsx, cur_row, cur_col):
-    return str(xlsx.cell(cur_row, cur_col).value)
+def xl_value(xl, row, col):
+    return str(xl.cell(row, col).value)
 
-def ValToKey(value):
-    return value[0] != "\"" and "\"" + value + "\"" or value
+def to_key(value):
+    return "\"" + value + "\"" if value[0] != "\"" else value
 
-#   跳过空字符
-def SkipSpaceChar(buffer, i, l):
-    while i != l and ord(buffer[i]) <= 32:
-        i = i + 1
-    return i
-
-#   跳过注释行
-def SkipCommentLine(xlsx, cur_row):
-    while cur_row != xlsx.max_row and XLGetValue(xlsx, cur_row, 1) == "//":
-        cur_row = cur_row + 1
-    return cur_row
-
-#   type name => (type, name)
-def SplitTypeName(value):
-    split = value.split()
-    return len(split) == 1      \
-        and (split[0], None)    \
-        or  (split[0], split[1])
-
-#   字符串比较
-def MatchSubString(str0, str1, i):
+#   前缀比较
+def match_prefix(str0, str1, i):
     l0 = len(str0)
     l1 = len(str1)
-    if l0 >= l1:
+    if l0 - i >= l1:
         sub = str0[i:i+l1]
         return sub == str1
     return False
 
+#   是否注释
+def is_comment_char(xl, row, col):
+    return xl_value(xl, row, col) == "//"
+
+#   跳过空字符
+def skip_space_char(buffer, i, l):
+    while i != l and ord(buffer[i]) <= 32: i = i + 1
+    return i
+
+#   跳过注释行
+def skip_comment_line(xl, row):
+    while row != xl.max_row and is_comment_char(xl, row, 1): row = row + 1
+    return row
+
+#   type name => (type, name)
+def split_type_name(value):
+    split = value.split()
+    return (split[0], None) if len(split) == 1 else (split[0], split[1])
+
+#   获取有效类型名
+def get_type_name(buffer, index, length):
+    start = index
+    while index != length and (                             \
+        ("a" <= buffer[index] and "z" >= buffer[index]) or  \
+        ("A" <= buffer[index] and "Z" >= buffer[index]) or  \
+        ("0" <= buffer[index] and "9" >= buffer[index]) or  \
+        ("_" == buffer[index])): index = index + 1
+    return index, buffer[start: index]
+
 #   解析器
-class Parser:
+class parser_wrap_t:
     def __init__(self, func = None, name = None):
-        self.mFunc = func
-        self.mName = name
-        self.mChildren = []
+        self.func = func
+        self.name = name
+        self.subs = []
     
-    def Append(self, unit):
-        self.mChildren.append(unit)
+    def parse(self, buffer, index, length):
+        return self.func(buffer, index, length, self.subs)
 
-    def SetName(self, name):
-        self.mName = name
-
-    def GetName(self):
-        return self.mName
-    
-    def GetType(self):
-        if   self.mFunc == OnParseList:
-            return "list"
-        elif self.mFunc == OnParseDict:
-            return "dict"
-        elif self.mFunc == OnParseBool:
-            return "bool"
-        elif self.mFunc == OnParseInt:
+    def get_type_name(self):
+        if   self.func == parse_to_int:
             return "int"
-        elif self.mFunc == OnParseStr:
+        elif self.func == parse_to_str:
             return "str"
-        elif self.mFunc == OnParseFloat:
+        elif self.func == parse_to_list:
+            return "list"
+        elif self.func == parse_to_dict:
+            return "dict"
+        elif self.func == parse_to_bool:
+            return "bool"
+        elif self.func == parse_to_float:
             return "float"
-        elif self.mFunc == OnParseStruct:
+        elif self.func == parse_to_struct:
             return "struct"
+#
+#   解析器
+#
+def parse_to_int(buffer, index, length, subs):
+    result = []
+    while index != length:
+        if "0" <= buffer[index] and "9" >= buffer[index]:
+            result.append(buffer[index]); index += 1
+        elif len(result) == 0   and "-" == buffer[index]:
+            result.append(buffer[index]); index += 1
+        else: break
+    return index, "".join(result)
 
-    def GetChildren(self):
-        return self.mChildren
-
-    def Run(self, value, i, l):
-        return self.mFunc(value, i, l, self.mChildren)
-
-def OnParseBool(value, i, l, parser):
-    assert is_float(value[i]), value
-    return i + 1, value[i] == "0"       \
-                          and "false"   \
-                          or  "true"
-
-def OnParseInt(value, i, l, parser):
-    num = []
-    while i != l:
-        if "0" <= value[i] and "9" >= value[i]:
-            num.append(value[i]); i = i + 1
-        elif len(num) == 0 and "-" == value[i]:
-            num.append(value[i]); i = i + 1
-        else:
+def parse_to_str(buffer, index, length, subs):
+    assert buffer[index] == "\"", "str"
+    index = index + 1
+    match = False
+    result = []
+    while index != length:
+        if buffer[index] == "\\": match = True
+        if buffer[index] == "\"" and not match:
             break
-    return i, "".join(num)
+        result.append(buffer[index])
+        index = index + 1; match = False
+    assert buffer[index] == "\"", "str"
+    return index + 1, "\"" + "".join(result) + "\""
 
-def OnParseStr(value, i, l, parser):
-    assert value[i] == "\"", value
-    i = i + 1
-    str = [ ]
-    mis = False
-    while i != l:
-        if value[i] == "\\": mis = True
-        if value[i] == "\"" and not mis:
-            break
-        str.append(value[i])
-        i   = i + 1
-        mis = False
-    assert value[i] == "\"", value
-    return i + 1, "\"" + "".join(str) + "\""
+def parse_to_bool(buffer, index, length, subs):
+    assert buffer[index] == "0" or buffer[index] == "1", "bool"
+    return index + 1, "false" if buffer[index] == "0" else "true"
 
-def OnParseFloat(value, i, l, parser):
-    ret = []
+def parse_to_float(buffer, index, length, subs):
+    result = []
     dot = False
-    while i != l:
-        if "0" <= value[i] and "9" >= value[i]:
-            ret.append(value[i]); i = i + 1
-        elif len(ret) == 0 and "-" == value[i]:
-            ret.append(value[i]); i = i + 1
-        elif not dot and "." == value[i]:
-            ret.append(value[i]); i = i + 1
-        else:
-            break
-    return i, "".join(ret)
+    while index != length:
+        if "0" <= buffer[index] and "9" >= buffer[index]:
+            result.append(buffer[index]); index = index + 1
+        elif len(result) == 0   and "-" == buffer[index]:
+            result.append(buffer[index]); index = index + 1
+        elif not dot and "." == buffer[index]:
+            result.append(buffer[index]); index = index + 1
+        else: break
+    return index, "".join(result)
 
-def OnParseList(value, i, l, parser):
-    assert value[i] == "[", value
-    ret = []
-    while i != l:
-        if value[i] == "]": break
-        i       = SkipSpaceChar(value, i + 1, l)
-        if value[i] == "]": break
+def parse_to_list(buffer, index, length, subs):
+    assert buffer[index] == "[", "list"
+    result = []
+    while index != length and buffer[index] != "]":
+        index = skip_space_char(buffer, index + 1, length)
+        index, item = subs[0].parse(buffer, index, length)
+        index = skip_space_char(buffer, index, length)
+        result.append(item)
+        assert buffer[index] == "," or buffer[index] == "]", "list"
 
-        i, data = parser[0].Run(value, i, l)
-        i       = SkipSpaceChar(value, i, l)
-        ret.append(data)
-        assert value[i] == "," \
-            or value[i] == "]", value
-    assert value[i] == "]", value
-    return i + 1, "[" + ", ".join(ret) + "]"
+    assert buffer[index] == "]", "list"
+    return index + 1, "[" + ", ".join(result) + "]"
 
-def OnParseDict(value, i, l, parser):
-    assert value[i] == "{", value
-    ret = []
-    while i != l:
-        if value[i] == "}": break
-        i = SkipSpaceChar(value, i + 1, l)
-        if value[i] == "}": break
+def parse_to_dict(buffer, index, length, subs):
+    assert buffer[index] == "{", "dict"
+    result = []
+    while index != length and buffer[index] != "}":
+        index = skip_space_char(buffer, index + 1, length)
+        index, key = subs[0].parse(buffer, index, length)
+        index = skip_space_char(buffer, index, length)
+        assert buffer[index] == ":", "dict"
+        index = skip_space_char(buffer, index + 1, length)
+        index, item = subs[1].parse(buffer, index, length)
+        result.append("%s: %s" %(key, item))
+        assert buffer[index] == "," or buffer[index] == "}", "dict"
 
-        i, key = parser[0].Run(value, i, l)
-        i      = SkipSpaceChar(value, i, l)
-        assert value[i] == ":", value
-        i      = SkipSpaceChar(value, i + 1, l)
-        i, val = parser[1].Run(value, i, l)
-        ret.append("%s: %s" %(key, val))
-        assert value[i] == "," \
-            or value[i] == "}", value
-    assert value[i] == "}", value
-    return i + 1, "{" + ", ".join(ret) + "}"
+    assert buffer[index] == "}", "dict"
+    return index + 1, "{" + ", ".join(result) + "}"
 
-def OnParseStruct(value, i, l, parser):
-    assert value[i] == "<", value
-    ret = []
-    idx = 0
-    while i != l:
-        if value[i] == ">": break
-        i = SkipSpaceChar(value, i + 1, l)
-        key    = parser[idx].GetName()
-        i, val = parser[idx].Run(value, i, l)
-        i = SkipSpaceChar(value, i, l)
-        ret.append("\"%s\": %s" % (key, val))
-        idx = idx + 1
-        assert value[i] == "," \
-            or value[i] == ">", value
-    assert value[i] == ">", value
-    return i + 1, "{" + ", ".join(ret) + "}"
+def parse_to_struct(buffer, index, length, subs):
+    assert buffer[index] == "<", "struct"
+    result = []
+    pindex = 0
+    while index != length and buffer[index] != ">":
+        index += 1
+        index = skip_space_char(buffer, index, length)
+        index, value = subs[pindex].parse(buffer, index, length)
+        index = skip_space_char(buffer, index, length)
+        result.append("\"%s\": %s" % (subs[pindex].name, value))
+        pindex = pindex + 1
+        assert buffer[index] == "," or buffer[index] == ">", "struct"
+    
+    assert buffer[index] == ">", "struct"
+    return index + 1, "{" + ", ".join(result) + "}"
 
-def GetTypeName(value, i, l):
-    b = i
-    while i != l and (\
-        ("a" <= value[i] and "z" >= value[i]) or \
-        ("A" <= value[i] and "Z" >= value[i]) or \
-        ("0" <= value[i] and "9" >= value[i]) or \
-        ("_" == value[i])):
-        i = i + 1
-    return i, value[b: i]
+def gen_parser_wrap(buffer, index, length):
+    parser_wrap = None
+    if match_prefix(buffer, "int", index):
+        index += len("int")
+        parser_wrap = parser_wrap_t(parse_to_int)
+    elif match_prefix(buffer, "str", index):
+        index += len("str")
+        parser_wrap = parser_wrap_t(parse_to_str)
+    elif match_prefix(buffer, "bool", index):
+        index += len("bool")
+        parser_wrap = parser_wrap_t(parse_to_bool)
+    elif match_prefix(buffer, "float", index):
+        index += len("float")
+        parser_wrap = parser_wrap_t(parse_to_float)
+    elif buffer[index] == "[":
+        index = index + 1
+        index = skip_space_char(buffer, index, length)
+        index, val_parser = gen_parser_wrap(buffer, index, length)
+        index = skip_space_char(buffer, index, length)
+        parser_wrap = parser_wrap_t(parse_to_list)
+        parser_wrap.subs.append(val_parser)
+        assert buffer[index] == "]", "list"
+        index = index + 1
+    elif buffer[index] == "{":
+        index = index + 1
+        key_parser = parser_wrap_t(parse_to_str)
+        index = skip_space_char(buffer, index, length)
+        index, val_parser = gen_parser_wrap(buffer, index, length)
+        index = skip_space_char(buffer, index, length)
+        parser_wrap = parser_wrap_t(parse_to_dict)
+        parser_wrap.subs.append(key_parser)
+        parser_wrap.subs.append(val_parser)
+        assert buffer[index] == "}", "dict"
+        index = index + 1
+    elif buffer[index] == "<":
+        parser_wrap = parser_wrap_t(parse_to_struct)
+        while index != length:
+            if buffer[index] == ">": break
+            index = index + 1
+            index = skip_space_char(buffer, index, length)
+            index, val_parser = gen_parser_wrap(buffer, index, length)
+            index = skip_space_char(buffer, index, length)
+            parser_wrap.subs.append(val_parser)
+            assert buffer[index] == "," or buffer[index] == ">", "struct"
+        assert buffer[index] == ">", "struct"
+        index = index + 1
 
-def CreateParser(value, i, l):
-    parser = None
-    if   MatchSubString(value, "bool", i):
-        i = i + len("bool")
-        parser = Parser(OnParseBool)
-
-    elif MatchSubString(value, "int", i):
-        i = i + len("int")
-        parser = Parser(OnParseInt)
-
-    elif MatchSubString(value, "str", i):
-        i = i + len("str")
-        parser = Parser(OnParseStr)
-
-    elif MatchSubString(value, "float", i):
-        i = i + len("float")
-        parser = Parser(OnParseFloat)
-
-    elif value[i] == "[":
-        i = i + 1
-        i = SkipSpaceChar(value, i, l)
-        i, valParser = CreateParser(value, i, l)
-        i = SkipSpaceChar(value, i, l)
-        parser = Parser(OnParseList)
-        parser.Append(valParser)
-        assert value[i] == "]", value
-        i = i + 1
-
-    elif value[i] == "{":
-        i = i + 1
-        keyParser = Parser(OnParseStr)
-        i = SkipSpaceChar(value, i, l)
-        i, valParser = CreateParser(value, i, l)
-        i = SkipSpaceChar(value, i, l)
-        parser = Parser(OnParseDict)
-        parser.Append(keyParser)
-        parser.Append(valParser)
-        assert value[i] == "}", value
-        i = i + 1
-
-    elif value[i] == "<":
-        parser = Parser(OnParseStruct)
-        while i != l:
-            if value[i] == ">": break
-            i = i + 1
-            i = SkipSpaceChar(value, i, l)
-            i, valParser = CreateParser(value, i, l)
-            i = SkipSpaceChar(value, i, l)
-            parser.Append(valParser)
-
-            assert value[i] == "," \
-                or value[i] == ">", value
-        assert value[i] == ">", value
-        i = i + 1
-
-    i = SkipSpaceChar(value, i, l)
-    i,k = GetTypeName(value, i, l)
-    parser.SetName(k)
-    return i, parser
+    index  = skip_space_char(buffer, index, length)
+    index, k = get_type_name(buffer, index, length)
+    parser_wrap.name = k
+    return index, parser_wrap
 
 #   初始化解析器
-def CreateParserList(xlsx, cur_row, parser_list):
-    for cur_col in range(1, xlsx.max_column + 1):
+def get_parser_wraps(xl, row, output):
+    for col in range(1, xl.max_column + 1):
         try:
-            cur_val = XLGetValue(xlsx, cur_row, cur_col)
-            _,v = CreateParser(cur_val, 0, len(cur_val))
-            parser_list.append(v)
+            buffer = xl_value(xl, row, col)
+            output.append(gen_parser_wrap(buffer, 0, len(buffer))[1])
         except:
-            assert False, "%d:%d:%s" % (cur_row, cur_col, cur_val)
-    return cur_row + 1
+            assert False, "%d | %d | %s" % (row, col, buffer)
+    return row + 1
 
 #   解析单元格
-def CreateOutputList(xlsx, cur_row, parser_list, out):
-    for cur_row in range(cur_row, xlsx.max_row + 1):
-        if XLGetValue(xlsx, cur_row, 1) == "//": continue
+def get_output_lines(xlsx, row, parser_wrap_list, output_line_list):
+    for row in range(row, xlsx.max_row + 1):
+        if xl_value(xlsx, row, 1) == "//": continue
 
         lines = []
-        for cur_col in range(1, xlsx.max_column + 1):
+        for col in range(1, xlsx.max_column + 1):
             try:
-                value = XLGetValue(xlsx, cur_row, cur_col)
-                vlen = len(value)
-                parser = parser_list[cur_col - 1]
-                k    = parser.GetName()
-                _, v = parser.Run(value, 0, vlen)
-                lines.append("\"%s\": %s" % (k, v))
+                value  = xl_value(xlsx, row, col)
+                parser = parser_wrap_list[col - 1]
+                _, v = parser.parse(value, 0, len(value))
+                lines.append("\"%s\": %s" % (parser.name, v))
             except AssertionError as e:
-                assert False, "%d:%d | %s" % (cur_row, cur_col, e)
-        key = XLGetValue(xlsx, cur_row, 1)
+                assert False, "%d | %d | %s | %s" % (row, col, e, value)
+        key = xl_value(xlsx, row, 1)
         val = "{" + ", ".join(lines) + "}"
-        out.append("%s: %s" % (ValToKey(key), val))
-    return cur_row
+        output_line_list.append("%s: %s" % (to_key(key), val))
+    return row
 
 #   导出Json
-def ToJson(ifile):
-    # clock = time.time()
+def ToJson(file_name):
     #   读第一张表
-    xlsx = openpyxl.load_workbook(ifile, data_only = True)
-    xlsx = xlsx[xlsx.sheetnames[0]]
-
-    #   跳过注释行
-    cur_row = SkipCommentLine(xlsx, 1)
+    xlsx = openpyxl.load_workbook(file_name, data_only = True)
+    name, xlsx = xlsx.sheetnames[0], xlsx[xlsx.sheetnames[0]]
 
     try:
-        print("> Export %s" % ifile)
-        parser_list = []
-        output_list = []
-        cur_row = CreateParserList(xlsx, cur_row, parser_list)
-        cur_row = CreateOutputList(xlsx, cur_row, parser_list, output_list)
-        # print("> %.3fs From %s" % (time.time() - clock, ifile))
-        return "{\n" + ",\n".join(output_list) + "\n}", parser_list
+        row = skip_comment_line(xlsx, 1)
+        parser_wrap_list = []
+        output_line_list = []
+        row = get_parser_wraps(xlsx, row, parser_wrap_list)
+        row = get_output_lines(xlsx, row, parser_wrap_list, output_line_list)
+        return (name, "{\n" + ",\n".join(output_line_list) + "\n}", parser_wrap_list)
     except AssertionError as e:
-        assert False, "%s | %s" % (ifile, e)
-
-def ExportToFile(ifile, ofile):
-    with open(ofile, "w") as f:
-        f.write((ToJson(ifile))[0])
-
-if __name__ == "__main__":
-    ExportToFile(sys.argv[1], sys.argv[2])
+        assert False, "%s | %s" % (file_name, e)
