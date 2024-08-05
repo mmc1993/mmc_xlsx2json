@@ -29,19 +29,26 @@ def Write(url, data):
         f.write(data)
 
 def Export():
-    output_json_list = []
-    parser_wrap_list = []
+    file_struct_wraps = []
     for fname in os.listdir(in_dir):
         split = os.path.splitext(fname)
         if split[1] == ".xlsx" and split[0][0] != "~":
             in_fullpath = in_dir + fname
-            name, output_json, parser_wrap = mmc_xlsl2json.to_json.ToJson(in_fullpath)
-            output_json_list.append((name, output_json))
-            parser_wrap_list.append((name, parser_wrap))
-            Write(out_dir + name + ".json", output_json)
+            name, json, wrap = mmc_xlsl2json.to_json.to_json(in_fullpath)
+            file_struct_wraps.append((name, wrap))
+            Write(out_dir + name + ".json", json)
             print(in_fullpath, "=>", name)
 
     #   写入C#
+    cs_key_words_lut = {
+        "i": "public int",
+        "s": "public string",
+        "f": "public float",
+        "struct": "public class"
+    }
+    cs_body_template = "using System.Collections.Generic;\n\nnamespace %s {\n%s\n}"
+    mmc_xlsl2json.to_type.to_type("config", file_struct_wraps, cs_key_words_lut, cs_body_template)
+    # Write(out_type_dir + "type_define.cs", mmc_xlsl2json.to_type.to_type("config", file_struct_wraps, cs_key_words_lut, cs_body_template))
     # Write(OUT_DEFINE_CS, gen_struct_define_cs.gen(type_namespace, parser_wrap_list))
     # Write(OUT_DEFINE_CPP, gen_struct_define_cpp.gen(type_namespace, parser_wrap_list))
 

@@ -247,17 +247,17 @@ def get_output_lines(xlsx, row, parser_wrap_list, output_line_list):
     return row
 
 #   导出Json
-def ToJson(file_name):
+def to_json(file_name):
     #   读第一张表
     xlsx = openpyxl.load_workbook(file_name, data_only = True)
     name, xlsx = xlsx.sheetnames[0], xlsx[xlsx.sheetnames[0]]
 
     try:
         row = skip_comment_line(xlsx, 1)
-        parser_wrap_list = []
-        output_line_list = []
-        row = get_parser_wraps(xlsx, row, parser_wrap_list)
-        row = get_output_lines(xlsx, row, parser_wrap_list, output_line_list)
-        return (name, "{\n" + ",\n".join(output_line_list) + "\n}", parser_wrap_list)
+        parser_cols = []
+        output_rows = []
+        row = get_parser_wraps(xlsx, row, parser_cols)
+        row = get_output_lines(xlsx, row, parser_cols, output_rows)
+        return (name, "{\n" + ",\n".join(output_rows) + "\n}", parser_cols)
     except AssertionError as e:
         assert False, "%s | %s" % (file_name, e)

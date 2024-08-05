@@ -1,22 +1,46 @@
 # coding=utf-8
 
-#   描述: Json转CShap数据结构
-#   作者: mmc
-#   日期: 2020-03-20
-
-def uid(parser):
-    return "__%d__" % id(parser)
+def uid(obj):
+    return "__%d__" % id(obj)
 
 #   生成字符串
 def indent(count):
-    return "".join(" " for i in range(count * 4))
+    return "".join(" " for i in range(count * 1))
 
-#   收集结构体类型
+def to_type(namespace, file_struct_wraps, key_words_lut, body_template):
+    body = "\n".join([gen_from_file(file_struct_wrap[0],    \
+                                    file_struct_wrap[1],    \
+                                    key_words_lut)          \
+        for file_struct_wrap in file_struct_wraps])
+    return body_template % (namespace, body)
+
 def collect_struct(parser_wrap, result):
     for sub in parser_wrap.subs:
         collect_struct(sub, result)
-    if parser_wrap.get_type_name() == "t":
+    if parser_wrap.get_type_name()=="t":
         result.append(parser_wrap)
+
+def gen_from_file(file_struct_name, file_struct_parser_wraps, key_words_lut):
+    file_struct_parser_wraps = [file_struct_parser_wrap for file_struct_parser_wrap in \
+                                file_struct_parser_wraps if file_struct_parser_wrap != None]
+
+    struct_list = []
+    for file_struct_parser_wrap in file_struct_parser_wraps:
+        collect_struct(file_struct_parser_wrap, struct_list)
+
+    struct_text = gen_structs(struct_list, key_words_lut, 2)
+    print(struct_text)
+    # text_member = gen_members(file_struct_parser_wraps, 2)
+    # param = (indent(1), file_struct_name, text_struct, text_member)
+    # return "{0}public class {1} {{\n{2}\n{3}\n{0}}};".format(*param)
+    return ""
+
+def gen_structs(parser_wraps, key_words_lut, depth):
+    format = "{0} {1} {{\n{2}\n{0}}};"
+    return "\n".join([
+        format.format(indent(depth), key_words_lut["struct"],       \
+        uid(parser_wrap), gen_struct(parser_wrap, depth + 1))       \
+        for parser_wrap in parser_wraps])
 
 #   生成成员
 def gen_member(parser_wrap, depth):
@@ -68,27 +92,4 @@ def gen_struct(parser_wraps, depth):
     structs = gen_members(parser_wraps.subs, depth)
     return "".join(structs)
 
-def gen_structs(parser_wraps, depth):
-    fmt = "{0}public class {1} {{\n{2}\n{0}}};"
-    return "\n".join([fmt.format(           \
-        indent(depth), uid(parser_wrap),    \
-        gen_struct(parser_wrap,depth+1))    \
-        for parser_wrap in parser_wraps])
 
-def gen_from_file(parser_wraps, name):
-    parser_wraps = [parser_wrap for parser_wrap in parser_wraps if parser_wrap != None]
-
-    struct_list = []
-    [collect_struct(parser_wrap, struct_list) for parser_wrap in parser_wraps]
-    text_struct = gen_structs(struct_list,  2)
-    text_member = gen_members(parser_wraps, 2)
-    param = (indent(1), name, text_struct, text_member)
-    return "{0}public class {1} {{\n{2}\n{3}\n{0}}};".format(*param)
-
-def gen(namespace, parser_wrap_list):
-    body = "\n".join([gen_from_file(parser_wrap[1],     \
-                                    parser_wrap[0])     \
-                    for parser_wrap in parser_wrap_list])
-    fmt  = "using System.Collections.Generic;\n\n"
-    fmt += "namespace %s {\n%s\n}"
-    return fmt % (namespace, body)
