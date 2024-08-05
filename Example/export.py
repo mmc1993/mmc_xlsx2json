@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append("..")
 
-import tojson
+import to_json
 import gen_struct_define_cpp
 import gen_struct_define_cs
 
@@ -33,7 +33,7 @@ def Export():
     for name in os.listdir(IN_DIR):
         split = os.path.splitext(name)
         if split[1] == ".xlsx" and split[0][0] != "~":
-            name, output_json, parser_wrap = tojson.ToJson(IN_DIR + name)
+            name, output_json, parser_wrap = to_json.ToJson(IN_DIR + name)
             output_json_list.append((name, output_json))
             parser_wrap_list.append((name, parser_wrap))
 
