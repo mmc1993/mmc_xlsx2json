@@ -1,3 +1,30 @@
+# 这是一个将Excel转化为Json的实用小工具
+
+### 特点
+* 扩展性极强
+* 实现简洁，代码量少
+* 操作简单，执行极快
+* 支持多种类型，适应场景广
+* 支持任意层数数据结构嵌套
+* 支持输出多种语言的结构信息
+
+### 支持类型
+| 类型 | 语法 | 示例 |
+| --- | ----- | ---- |
+| int | int | int var_name |
+| str | str | str var_name |
+| bool | bool | bool var_name |
+| float | float | float var_name |
+
+
+* int
+* str
+* bool
+* float
+* list
+* dict
+* struct
+
 # Excel表格转Json数据结构
 
 辗转了好几个项目，每个项目的导表工具都巨难用，速度慢，潜规则多，扩展性差，不易于调试。Sqlite，Json，Lua，Xml各种格式都用过。

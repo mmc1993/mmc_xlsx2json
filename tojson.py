@@ -62,19 +62,19 @@ class parser_wrap_t:
 
     def get_type_name(self):
         if   self.func == parse_to_int:
-            return "int"
+            return "i"
         elif self.func == parse_to_str:
-            return "str"
+            return "s"
+        elif self.func == parse_to_bool:
+            return "b"
+        elif self.func == parse_to_float:
+            return "f"
+        elif self.func == parse_to_struct:
+            return "t"
         elif self.func == parse_to_list:
             return "list"
         elif self.func == parse_to_dict:
             return "dict"
-        elif self.func == parse_to_bool:
-            return "bool"
-        elif self.func == parse_to_float:
-            return "float"
-        elif self.func == parse_to_struct:
-            return "struct"
 #
 #   解析器
 #
@@ -166,17 +166,17 @@ def parse_to_struct(buffer, index, length, subs):
 
 def gen_parser_wrap(buffer, index, length):
     parser_wrap = None
-    if match_prefix(buffer, "int", index):
-        index += len("int")
+    if match_prefix(buffer, "i", index):
+        index += len("i")
         parser_wrap = parser_wrap_t(parse_to_int)
-    elif match_prefix(buffer, "str", index):
-        index += len("str")
+    elif match_prefix(buffer, "s", index):
+        index += len("s")
         parser_wrap = parser_wrap_t(parse_to_str)
-    elif match_prefix(buffer, "bool", index):
-        index += len("bool")
+    elif match_prefix(buffer, "b", index):
+        index += len("b")
         parser_wrap = parser_wrap_t(parse_to_bool)
-    elif match_prefix(buffer, "float", index):
-        index += len("float")
+    elif match_prefix(buffer, "f", index):
+        index += len("f")
         parser_wrap = parser_wrap_t(parse_to_float)
     elif buffer[index] == "[":
         index = index + 1
@@ -213,7 +213,7 @@ def gen_parser_wrap(buffer, index, length):
 
     index  = skip_space_char(buffer, index, length)
     index, k = get_type_name(buffer, index, length)
-    parser_wrap.name = k
+    if parser_wrap != None: parser_wrap.name = k
     return index, parser_wrap
 
 #   初始化解析器
@@ -235,7 +235,8 @@ def get_output_lines(xlsx, row, parser_wrap_list, output_line_list):
         for col in range(1, xlsx.max_column + 1):
             try:
                 value  = xl_value(xlsx, row, col)
-                parser = parser_wrap_list[col - 1]
+                parser = parser_wrap_list[col -1]
+                if parser == None: continue
                 _, v = parser.parse(value, 0, len(value))
                 lines.append("\"%s\": %s" % (parser.name, v))
             except AssertionError as e:

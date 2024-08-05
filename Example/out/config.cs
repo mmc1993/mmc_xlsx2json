@@ -1,44 +1,35 @@
 using System.Collections.Generic;
 
 namespace config {
-    public struct Sheet1 {
-        public struct __2314732556304__ {
-            public bool b;
-            public float n;
-            public string s;
+    public class demo0 {
+
+        public int a;
+        public float b;
+        public bool c;
+        public string d;
+    };
+    public class demo1 {
+        public class __3147673060304__ {
+            public int vint;
+            public string vstr;
+            public float vfloat;
+            public bool vbool;
         };
-        public struct __2314724336720__ {
-            public bool b;
-            public float n;
-            public string s;
+        public class __3147673084048__ {
+            public int a;
+            public float b;
         };
-        public struct __2314732586128__ {
-            public bool b;
-            public float n;
-            public string s;
-        };
-        public struct __2314732600912__ {
-            public bool b;
-            public float n;
-            public string s;
-        };
-        public struct __2314732585296__ {
-            public __2314732600912__ t;
-        };
-        public float id;
-        public bool b;
-        public float n;
-        public string s;
-        public List<bool> b_list;
-        public List<float> n_list;
-        public List<string> s_list;
-        public Dictionary<string, bool> b_dict;
-        public Dictionary<string, float> n_dict;
-        public Dictionary<string, string> s_dict;
-        public __2314732556304__ t;
-        public List<__2314724336720__> t_list;
-        public List<Dictionary<string, float>> d_list;
-        public Dictionary<string, __2314732586128__> t_dict;
-        public __2314732585296__ t_type;
+        public int a;
+        public List<int> b;
+        public Dictionary<string, float> c;
+        public __3147673060304__ d;
+        public List<__3147673084048__> e;
+    };
+    public class demo2 {
+
+        public int a;
+        public float b;
+        public bool c;
+        public string d;
     };
 }

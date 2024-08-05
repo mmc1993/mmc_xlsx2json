@@ -3,44 +3,35 @@
 #include <map>
 
 namespace config {
-    struct Sheet1 {
-        struct __2148925449936__ {
-            bool b;
-            float n;
-            std::string s;
+    struct demo0 {
+
+        int a;
+        float b;
+        bool c;
+        std::string d;
+    };
+    struct demo1 {
+        struct __3147673060304__ {
+            int vint;
+            std::string vstr;
+            float vfloat;
+            bool vbool;
         };
-        struct __2148911181200__ {
-            bool b;
-            float n;
-            std::string s;
+        struct __3147673084048__ {
+            int a;
+            float b;
         };
-        struct __2148925459920__ {
-            bool b;
-            float n;
-            std::string s;
-        };
-        struct __2148925457104__ {
-            bool b;
-            float n;
-            std::string s;
-        };
-        struct __2148925471888__ {
-            __2148925457104__ t;
-        };
-        float id;
-        bool b;
-        float n;
-        std::string s;
-        std::vector<bool> b_list;
-        std::vector<float> n_list;
-        std::vector<std::string> s_list;
-        std::map<std::string, bool> b_dict;
-        std::map<std::string, float> n_dict;
-        std::map<std::string, std::string> s_dict;
-        __2148925449936__ t;
-        std::vector<__2148911181200__> t_list;
-        std::vector<std::map<std::string, float>> d_list;
-        std::map<std::string, __2148925459920__> t_dict;
-        __2148925471888__ t_type;
+        int a;
+        std::vector<int> b;
+        std::map<std::string, float> c;
+        __3147673060304__ d;
+        std::vector<__3147673084048__> e;
+    };
+    struct demo2 {
+
+        int a;
+        float b;
+        bool c;
+        std::string d;
     };
 }
