@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace config {
+namespace demo.config {
     public class demo0 
     {
         public int a;
@@ -10,14 +10,14 @@ namespace config {
     };
     public class demo1 
     {
-        public class __2811434835984__
+        public class __1286102216592__
         {
             public int vint;
             public string vstr;
             public float vfloat;
             public bool vbool;
         };
-        public class __2811420222800__
+        public class __1286094064784__
         {
             public int a;
             public float b;
@@ -25,8 +25,8 @@ namespace config {
         public int a;
         public List<int> b;
         public Dict<string, float> c;
-        public __2811434835984__ d;
-        public List<__2811420222800__> e;
+        public __1286102216592__ d;
+        public List<__1286094064784__> e;
     };
     public class demo2 
     {

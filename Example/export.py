@@ -51,7 +51,7 @@ def Export():
         "dict": "Dict",
     }
     cs_body_template = "using System.Collections.Generic;\n\nnamespace %s {\n%s\n}"
-    Write(out_type_dir + "type_define.cs", mmc_xlsl2json.to_type.to_type("config", cs_key_words_lut, cs_body_template, file_struct_wraps))
+    Write(out_type_dir + "type_define.cs", mmc_xlsl2json.to_type.to_type("demo.config", cs_key_words_lut, cs_body_template, file_struct_wraps))
 
     cpp_key_words_lut = {
         "scope": "",
@@ -64,7 +64,7 @@ def Export():
         "dict": "std::map",
     }
     cpp_body_template  = "#include <string>\n#include <vector>\n#include <map>\n\nnamespace %s {\n%s\n}"
-    Write(out_type_dir + "type_define.cpp", mmc_xlsl2json.to_type.to_type("config", cpp_key_words_lut, cpp_body_template, file_struct_wraps))
+    Write(out_type_dir + "type_define.cpp", mmc_xlsl2json.to_type.to_type("demo::config", cpp_key_words_lut, cpp_body_template, file_struct_wraps))
 
 if __name__ == "__main__":
     try:
