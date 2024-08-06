@@ -41,16 +41,31 @@ def Export():
 
     #   写入C#
     cs_key_words_lut = {
-        "i": "public int",
-        "s": "public string",
-        "f": "public float",
-        "struct": "public class"
+        "scope": "public ",
+        "class": "class",
+        "i": "int",
+        "b": "bool",
+        "f": "float",
+        "s": "string",
+        "list": "List",
+        "dict": "Dict",
     }
     cs_body_template = "using System.Collections.Generic;\n\nnamespace %s {\n%s\n}"
-    mmc_xlsl2json.to_type.to_type("config", file_struct_wraps, cs_key_words_lut, cs_body_template)
-    # Write(out_type_dir + "type_define.cs", mmc_xlsl2json.to_type.to_type("config", file_struct_wraps, cs_key_words_lut, cs_body_template))
-    # Write(OUT_DEFINE_CS, gen_struct_define_cs.gen(type_namespace, parser_wrap_list))
-    # Write(OUT_DEFINE_CPP, gen_struct_define_cpp.gen(type_namespace, parser_wrap_list))
+
+    cpp_key_words_lut = {
+        "scope": "",
+        "class": "struct",
+        "i": "int",
+        "b": "bool",
+        "f": "float",
+        "s": "std::string",
+        "list": "std::vector",
+        "dict": "std::map",
+    }
+    cpp_body_template  = "#include <string>\n#include <vector>\n#include <map>\n\nnamespace %s {\n%s\n}"
+
+    Write(out_type_dir + "type_define.cs", mmc_xlsl2json.to_type.to_type("config", cs_key_words_lut, cs_body_template, file_struct_wraps))
+    Write(out_type_dir + "type_define.cpp", mmc_xlsl2json.to_type.to_type("config", cpp_key_words_lut, cpp_body_template, file_struct_wraps))
 
 if __name__ == "__main__":
     try:
