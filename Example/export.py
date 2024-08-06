@@ -7,7 +7,6 @@
 import os
 import sys
 sys.path.append("..")
-
 import mmc_xlsl2json
 
 #   输入
@@ -16,8 +15,6 @@ in_dir = os.getcwd() + "/in/"
 out_dir = os.getcwd() + "/out/"
 #   类型输出
 out_type_dir = os.getcwd() + "/out/"
-#   命名空间
-type_namespace = "config"
 
 try: os.rmdir(out_dir)
 except: pass
