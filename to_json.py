@@ -22,9 +22,6 @@
 
 # coding=utf-8
 
-#   作者: mmc
-#   日期: 2020/3/19
-
 import openpyxl
 
 #   读取单元格文本
