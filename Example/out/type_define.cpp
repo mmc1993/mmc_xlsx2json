@@ -3,23 +3,23 @@
 #include <map>
 
 namespace demo::config {
-    struct demo0 
+    struct demo0
     {
         int a;
         float b;
         bool c;
         std::string d;
     };
-    struct demo1 
+    struct demo1
     {
-        struct __1286102216592__
+        struct __1876340187152__
         {
             int vint;
             std::string vstr;
             float vfloat;
             bool vbool;
         };
-        struct __1286094064784__
+        struct __1876325246288__
         {
             int a;
             float b;
@@ -27,10 +27,10 @@ namespace demo::config {
         int a;
         std::vector<int> b;
         std::map<std::string, float> c;
-        __1286102216592__ d;
-        std::vector<__1286094064784__> e;
+        __1876340187152__ d;
+        std::vector<__1876325246288__> e;
     };
-    struct demo2 
+    struct demo2
     {
         int a;
         float b;

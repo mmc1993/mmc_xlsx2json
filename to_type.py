@@ -31,7 +31,7 @@ def gen_from_file(key_words_lut, file_struct_name, file_struct_parser_wraps):
     struct_text = gen_structs(key_words_lut, struct_list, 2)
     member_text = gen_members(key_words_lut, file_struct_parser_wraps, 2)
     if len(struct_text) > 0: struct_text += "\n"
-    format = "{0}{1}{2} {3} \n{0}{{\n{4}{5}\n{0}}};"
+    format = "{0}{1}{2} {3}\n{0}{{\n{4}{5}\n{0}}};"
     return format.format(indent(1),                 \
                          key_words_lut["scope"],    \
                          key_words_lut["class"],    \
