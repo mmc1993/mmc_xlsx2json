@@ -10,10 +10,10 @@
 ## 支持类型
 | 类型    | 语法       | 示例                 |
 | -----   | ---------- | -------------------- |
-| int     | int        | int        var_name  |
-| str     | str        | str        var_name  |
-| bool    | bool       | bool       var_name  |
-| float   | float      | float      var_name  |
+| int     | i          | i          var_name  |
+| str     | s          | s          var_name  |
+| bool    | b          | b          var_name  |
+| float   | f          | f          var_name  |
 | list<T> | [T]        | [i]        var_name  |
 | dict<T> | {T}        | {i}        var_name  |
 | struct  | <T a, U b> | <i a, f b> var_name  |
