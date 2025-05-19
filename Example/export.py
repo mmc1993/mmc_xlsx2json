@@ -6,8 +6,9 @@
 
 import os
 import sys
-sys.path.append("..")
-import mmc_xlsl2json
+sys.path.append("../")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import xlsl2json
 
 #   输入
 in_dir = os.getcwd() + "/in/"
@@ -26,42 +27,17 @@ def Write(url, data):
         f.write(data)
 
 def Export():
-    file_struct_wraps = []
+    type_desc = []
     for fname in os.listdir(in_dir):
         split = os.path.splitext(fname)
         if split[1] == ".xlsx" and split[0][0] != "~":
             in_fullpath = in_dir + fname
-            name, json, wrap = mmc_xlsl2json.to_json.to_json(in_fullpath)
-            file_struct_wraps.append((name, wrap))
+            name, json, desc = xlsl2json.to_json.to_json(in_fullpath)
+            type_desc.append((name, desc))
             Write(out_dir + name + ".json", json)
             print(in_fullpath, "=>", name)
 
-    #   写入C#
-    cs_key_words_lut = {
-        "scope": "public ",
-        "class": "class",
-        "i": "int",
-        "b": "bool",
-        "f": "float",
-        "s": "string",
-        "list": "List",
-        "dict": "Dict",
-    }
-    cs_body_template = "using System.Collections.Generic;\n\nnamespace %s {\n%s\n}"
-    Write(out_type_dir + "type_define.cs", mmc_xlsl2json.to_type.to_type("demo.config", cs_key_words_lut, cs_body_template, file_struct_wraps))
-
-    cpp_key_words_lut = {
-        "scope": "",
-        "class": "struct",
-        "i": "int",
-        "b": "bool",
-        "f": "float",
-        "s": "std::string",
-        "list": "std::vector",
-        "dict": "std::map",
-    }
-    cpp_body_template  = "#include <string>\n#include <vector>\n#include <map>\n\nnamespace %s {\n%s\n}"
-    Write(out_type_dir + "type_define.cpp", mmc_xlsl2json.to_type.to_type("demo::config", cpp_key_words_lut, cpp_body_template, file_struct_wraps))
+    Write(out_type_dir + "type_define.d.ts", xlsl2json.to_type_ts.to_type("XL", type_desc))
 
 if __name__ == "__main__":
     try:

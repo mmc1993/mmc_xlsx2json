@@ -24,3 +24,4 @@
 
 import to_json
 import to_type
+import to_type_ts

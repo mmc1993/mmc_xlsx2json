@@ -10,14 +10,14 @@ namespace demo.config {
     };
     public class demo1
     {
-        public class __1876340187152__
+        public class __2278458827664__
         {
             public int vint;
             public string vstr;
             public float vfloat;
             public bool vbool;
         };
-        public class __1876325246288__
+        public class __2278458633488__
         {
             public int a;
             public float b;
@@ -25,8 +25,8 @@ namespace demo.config {
         public int a;
         public List<int> b;
         public Dict<string, float> c;
-        public __1876340187152__ d;
-        public List<__1876325246288__> e;
+        public __2278458827664__ d;
+        public List<__2278458633488__> e;
     };
     public class demo2
     {
