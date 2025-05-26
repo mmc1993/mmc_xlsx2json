@@ -6,16 +6,15 @@
 
 import os
 import sys
-sys.path.append("../")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import xlsl2json
 
 #   输入
-in_dir = os.getcwd() + "/in/"
+in_dir = os.getcwd() + "/In/"
 #   输出
-out_dir = os.getcwd() + "/out/"
+out_dir = os.getcwd() + "/Out/"
 #   类型输出
-out_type_dir = os.getcwd() + "/out/"
+out_type_dir = os.getcwd() + "/Out/"
 
 try: os.rmdir(out_dir)
 except: pass
@@ -37,7 +36,7 @@ def Export():
             Write(out_dir + name + ".json", json)
             print(in_fullpath, "=>", name)
 
-    Write(out_type_dir + "type_define.d.ts", xlsl2json.to_type_ts.to_type("XL", type_desc))
+    Write(out_type_dir + "index.d.ts", xlsl2json.to_type_ts.to_type("XL", type_desc))
 
 if __name__ == "__main__":
     try:

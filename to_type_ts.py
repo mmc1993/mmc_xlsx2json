@@ -57,11 +57,11 @@ def gen_from_file(type_name, type_descs):
     #   为内联类型生成名字
     name_map = {}
     for type_desc in noname_types:
-        name_map[sid(type_desc)] = "_class_%s_%d" \
+        name_map[sid(type_desc)] = "_noname_%s_%d" \
                         % (type_name, len(name_map))
 
     struct_text = gen_structs(name_map, noname_types, 1)
-    member_text = gen_members(name_map, type_descs, 2)
+    member_text = gen_members(name_map, type_descs,   2)
     if len(struct_text) > 0: struct_text += "\n"
     return "{0}{1}class {2} {{\n{3}\n{1}}}".format(  \
             struct_text, indent(1), type_name, member_text)
@@ -82,14 +82,21 @@ def gen_members(name_map, type_descs, depth):
 #   生成成员
 def gen_member(name_map, type_desc, depth):
     typekey = type_desc.get_type_name()
-    if typekey == "i" \
-    or typekey == "s" \
-    or typekey == "b" \
-    or typekey == "f":
+    if typekey == "i" or typekey == "f":
         if len(type_desc.name) != 0:
             return "%spublic %s: number" % (indent(depth), type_desc.name)
         else:
             return "number"
+    elif typekey == "s":
+        if len(type_desc.name) != 0:
+            return "%spublic %s: string" % (indent(depth), type_desc.name)
+        else:
+            return "string"
+    elif typekey == "b":
+        if len(type_desc.name) != 0:
+            return "%spublic %s: Boolean" % (indent(depth), type_desc.name)
+        else:
+            return "Boolean"
     elif typekey == "list":
         memeber = gen_member(name_map, type_desc.subs[0], depth)
         if len(type_desc.name) != 0:

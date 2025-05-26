@@ -247,8 +247,10 @@ def get_parser_wraps(xl, row, output):
 
 #   解析单元格
 def get_output_lines(xlsx, row, parser_wrap_list, output_line_list):
+    collect_keys = []
     for row in range(row, xlsx.max_row + 1):
-        if xl_value(xlsx, row, 1) == "//": continue
+        if xl_value(xlsx, row, 1) == "//":
+            continue
 
         lines = []
         for col in range(1, xlsx.max_column + 1):
@@ -263,6 +265,11 @@ def get_output_lines(xlsx, row, parser_wrap_list, output_line_list):
         key = xl_value(xlsx, row, 1)
         val = "{" + ", ".join(lines) + "}"
         output_line_list.append("%s: %s" % (to_key(key), val))
+        collect_keys.append(key)
+
+    fmt = "\"__Index__\": [ %s ]"
+    str = ", ".join(collect_keys)
+    output_line_list.append(fmt % str)
     return row
 
 #   导出Json
